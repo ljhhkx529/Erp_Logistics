@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build && npx @opennextjs/cloudflare",
-    "start": "next start",
-    "lint": "eslint"
-  },
+  "dev": "next dev",
+  "build": "next build && npx @opennextjs/cloudflare build",
+  "start": "next start",
+  "lint": "next lint"
+},
   "dependencies": {
     "html5-qrcode": "^2.3.8",
     "next": "15.5.2",
