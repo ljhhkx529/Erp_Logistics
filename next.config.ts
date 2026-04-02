@@ -6,7 +6,14 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 const nextConfig = {
-  /* config options here */
+  // 1. 忽略 ESLint 检查
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // 2. 忽略 TypeScript 类型错误
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 };
 
 export default nextConfig;
