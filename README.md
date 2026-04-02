@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📦 Logistics ERP - 核心模块说明文档
 
-## Getting Started
+## 1. 客户预报门户 (Customer Entry Portal)
 
-First, run the development server:
+这是系统面向客户的首个功能模块，旨在解决货代业务中**入库前置化**的问题。通过该页面，客户（如 Archi, Ira 等）可以在货物到达仓库前完成自主申报。
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### 📋 功能特性
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+* ​**多维度录入**​：支持录入客户标识、品名、总货值及目标仓库。
+* ​**智能单号解析**​：输入框采用 `useMemo` 实时解析，支持换行、空格、中英文逗号等多种分隔符，实现“一键粘贴”批量录入。
+* ​**平摊货值逻辑 (Average Value Distribution)**​：
+  
+  > ​**核心算法**​：为了防止保险费计算时出现重复累计，系统将客户填写的“总货值”除以“单号总数”。
+  > 
+  > * ​*例子*​：总值 ¥3000，单号 SF1, SF2。数据库记录为：SF1(¥1500), SF2(¥1500)。
+* ​**无感交互 (Toast System)**​：摒弃了传统的浏览器 `alert` 弹窗，采用自定义状态控制的 Toast 提示，3秒后自动消失，提升用户操作丝滑度。
+* ​**国际化对齐**​：界面关键字段均采用 **中俄双语** 对称显示，适配跨境货代场景。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 2. 自动化集成接口 (Webhook API)
 
-## Learn More
+为了后续对接 ​**Telegram 机器人**​，系统开放了标准化的数据写入接口。
 
-To learn more about Next.js, take a look at the following resources:
+* ​**Endpoint**​: `/api/shipments`
+* ​**Method**​: `POST`
+* ​**安全机制**​:
+  * 采用 `API_KEY` 鉴权，验证令牌通过环境变量安全隔离。
+  * 支持 Edge Runtime 环境，确保毫秒级的响应速度。
+* ​**数据结构**​:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 3. 数据库模型 (Shipments Table)
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+当前业务逻辑主要围绕 `shipments` 表展开，关键字段定义如下：
