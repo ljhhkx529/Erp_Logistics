@@ -1,19 +1,17 @@
-import { setupDevPlatform } from '@cloudflare/next-on-pages/next-dev';
+import type { NextConfig } from "next";
 
-// 🚀 开发环境下运行
-if (process.env.NODE_ENV === 'development') {
-  setupDevPlatform();
-}
-
-const nextConfig = {
-  // 1. 忽略 ESLint 检查
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // 2. 忽略 TypeScript 类型错误
+const nextConfig: NextConfig = {
+  /* 这里的配置是关键 */
   typescript: {
+    // 即使有 TypeScript 错误也允许生产构建通过
     ignoreBuildErrors: true,
   },
+  eslint: {
+    // 在生产构建期间禁用 ESLint 检查
+    ignoreDuringBuilds: true,
+  },
+  // 如果你用到了 Cloudflare 的边缘运行时，保留这个
+  // experimental: { runtime: 'edge' } 
 };
 
 export default nextConfig;
