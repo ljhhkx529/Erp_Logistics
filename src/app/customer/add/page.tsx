@@ -35,14 +35,12 @@ export default function CustomerEntry() {
       .filter((item) => item.trim() !== "");
   }, [formData.rawTracking]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFormAction = async () => {
     if (trackingList.length === 0) {
       setToast({ msg: "请至少输入一个单号", type: 'error' });
       return;
     }
-
-    setIsSubmitting(true);
+   setIsSubmitting(true);
 
     try {
       // 🚀 这里的参数需要包含 valueRmb
@@ -94,7 +92,7 @@ export default function CustomerEntry() {
             <div className="h-1.5 w-20 bg-blue-600 mx-auto rounded-full"></div>
           </div>
           
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form method="POST" className="space-y-8 action={handleFormAction} ">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* 客户名称 */}
               <div className="space-y-2">
