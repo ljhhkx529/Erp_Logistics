@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 // 🚀 注意：这是 OpenNext 1.x 版本的标准写法
-import { getRequestContext } from "@opennextjs/cloudflare";
+import { getRequestContext }from "@cloudflare/next-on-pages";
 
 export const dynamic = "force-dynamic";
 /**
@@ -17,13 +17,9 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     // 1. 拿到真正的 Cloudflare 环境对象
-    const openNext = require("@opennextjs/cloudflare");
-    
-    if (!openNext || typeof openNext.getRequestContext !== 'function') {
-      throw new Error("OpenNext Runtime 未就绪 / Окружение OpenNext не готово");
-    }
 
-    const ctx = openNext.getRequestContext();
+
+    const ctx = getRequestContext();
     
     // 2. 从 ctx.env 中提取数据库
     // 这里的 logistics_db 必须和 wrangler.toml 里的 binding 一致
