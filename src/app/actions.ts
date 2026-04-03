@@ -56,58 +56,6 @@ export async function getAllShipmentsAction() {
 }
 
 
-// src/app/actions.ts
-
-export async function createOutboundBatchAction(data: {
-  internal_tracking: string;
-  package_type: string;
-  insurance_type: string; // 🚀 注意这个名字
-  shipment_ids: number[];
-}) {
-  const { env } = getRequestContext();
-  if (!env || !env.logistics_db) return { success: false, error: "Database not connected" };
-
-  try {
-    // 1. 获取总重量
-    const placeholders = data.shipment_ids.map(() => "?").join(",");
-    const weightResult: any = await env.logistics_db.prepare(
-      `SELECT SUM(weight) as total_w FROM shipments WHERE id IN (${placeholders})`
-    ).bind(...data.shipment_ids).first();
-
-    // 2. 插入发货批次 (增加防御性处理，确保没有 undefined)
-    const { lastInsertRowid } = await env.logistics_db.prepare(
-      `INSERT INTO outbound_batches (internal_tracking, package_type, insurance_type, total_weight, status) 
-       VALUES (?, ?, ?, ?, 1)`
-    ).bind(
-      data.internal_tracking || "N/A",  // 如果没传，给个默认字符串
-      data.package_type || "wrapping", 
-      data.insurance_type || "none",    // 👈 重点检查这里
-      weightResult?.total_w ?? 0        // 如果是 null，转为 0
-    ).run();
-
-    // 3. 更新原包裹
-    await env.logistics_db.prepare(
-      `UPDATE shipments SET outbound_id = ?, status = 2 WHERE id IN (${placeholders})`
-    ).bind(lastInsertRowid, ...data.shipment_ids).run();
-
-    return { success: true };
-  } catch (e: any) {
-    if (e.message.includes("UNIQUE constraint failed")) {
-    return { 
-      success: false, 
-      error: "该自主单号已存在，请换一个新单号！/ Этот номер уже занят!" 
-    };
-  }
-    return { success: false, error: e.message };
-  }
-}
-
-"use server";
-
-import { revalidatePath } from 'next/cache';
-
-// 注意：不再需要 import { getRequestContext }
-
 export async function createOutboundBatchAction(data: {
   internal_tracking: string;
   package_type: string;
@@ -164,12 +112,6 @@ export async function createOutboundBatchAction(data: {
   }
 }
 // src/app/actions.ts
-
-"use server";
-
-import { revalidatePath } from 'next/cache';
-
-// 注意：不再需要 import { getRequestContext }
 
 export async function markInboundAction(data: {
   tracking_number: string;
@@ -253,12 +195,6 @@ export async function markInboundAction(data: {
     return { success: false, error: e.message };
   }
 }
-
-// src/app/actions.ts
-
-"use server";
-
-import { revalidatePath } from 'next/cache';
 
 // 注意：不再需要 import { getRequestContext }
 
