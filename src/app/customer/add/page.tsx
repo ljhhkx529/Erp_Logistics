@@ -4,7 +4,6 @@ import { useLanguage } from "@/context/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { submitShipmentAction } from "@/app/actions";
 
-//export const runtime = 'edge';
 
 export default function CustomerEntry() {
   const { t } = useLanguage();

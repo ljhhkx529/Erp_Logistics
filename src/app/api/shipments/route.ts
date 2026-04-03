@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getRequestContext } from "@cloudflare/next-on-pages";
 
 // 🚀 强制声明为 Edge Runtime 和 动态路由，防止 Cloudflare 缓存
-//export const runtime = "edge";
 export const dynamic = "force-dynamic";
 
 /**
