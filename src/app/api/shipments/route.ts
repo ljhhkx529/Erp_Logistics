@@ -17,7 +17,13 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     // 1. 拿到真正的 Cloudflare 环境对象
-    const ctx = getRequestContext();
+    const openNext = require("@opennextjs/cloudflare");
+    
+    if (!openNext || typeof openNext.getRequestContext !== 'function') {
+      throw new Error("OpenNext Runtime 未就绪 / Окружение OpenNext не готово");
+    }
+
+    const ctx = openNext.getRequestContext();
     
     // 2. 从 ctx.env 中提取数据库
     // 这里的 logistics_db 必须和 wrangler.toml 里的 binding 一致
