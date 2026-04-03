@@ -1,8 +1,10 @@
 name = "erplogistics"
 main = ".open-next/worker.js"
-
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
+
+[site]
+bucket = ".open-next/assets"
 
 [vars]
 NODE_ENV = "production"
