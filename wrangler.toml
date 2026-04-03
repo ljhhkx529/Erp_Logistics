@@ -1,8 +1,7 @@
-#:schema node_modules/wrangler/config-schema.json
-
-name = "erplogistics"   # 👈 改成你要访问的名字
-main = ".open-next/worker.js"
+name = "erplogistics"
 compatibility_date = "2024-01-01"
+
+pages_build_output_dir = ".next"
 
 [[d1_databases]]
 binding = "logistics_db"
