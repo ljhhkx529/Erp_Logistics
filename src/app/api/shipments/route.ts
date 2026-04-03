@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { getRequestContext } from "@opennextjs/cloudflare";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 /**
  * GET 方法：仅用于基础连通性测试
  */
