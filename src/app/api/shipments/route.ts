@@ -26,46 +26,34 @@ export async function GET() {
   }
   
   try {
-    // 1. 拿到真正的 Cloudflare 环境对象
+  const stmt = db.prepare(`
+    INSERT OR IGNORE INTO shipments 
+    (tracking_number, client_name, product_name, value_rmb, warehouse, status, created_at) 
+    VALUES (?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
+  `);
 
-    // 诊断检查（如果还是报错，看这个 debug 信息）
-    if (!db) {
-      return NextResponse.json({ 
-        error: "D1 Binding Missing",
-        debug: {
-          msg: "在 RequestContext 中未找到数据库",
-          available_bindings: Object.keys(ctx.env || {}) 
-        }
-      }, { status: 500 });
-    }
+  const batchTasks = trackingList.map((track: string) => 
+    stmt.bind(track.trim(), client, product, avgValue, warehouse)
+  );
 
-    const body = await request.json();
-    const { client, product, valueRmb, trackingList, warehouse, apiKey } = body;
+  // 🚀 重点 1：必须 await，并接收结果
+  const results = await db.batch(batchTasks);
+  
+  // 🚀 重点 2：打印结果元数据（这能告诉你到底写进去了几行）
+  const totalChanges = results.reduce((acc: number, r: any) => acc + (r.meta?.changes || 0), 0);
+  console.log(`📊 D1 执行完毕，实际写入行数: ${totalChanges}`);
 
-    // 3. 校验 API Key (可以从 ctx.env 拿，它是最原始的配置)
-    if (!apiKey || apiKey !== ctx.env.API_KEY) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
-
-    // 4. 批量写入逻辑
-    const count = trackingList.length;
-    const avgValue = (parseFloat(valueRmb) || 0) / (count || 1);
-
-    const stmt = db.prepare(`
-      INSERT OR IGNORE INTO shipments 
-      (tracking_number, client_name, product_name, value_rmb, warehouse, status, created_at) 
-      VALUES (?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
-    `);
-
-    const batchTasks = trackingList.map((track: string) => 
-      stmt.bind(track.trim(), client, product, avgValue, warehouse)
-    );
-
-    await db.batch(batchTasks);
-
-    return NextResponse.json({ success: true, count });
-
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  if (totalChanges === 0) {
+     return NextResponse.json({ 
+       success: true, 
+       msg: "执行成功但未写入新数据（可能是单号已存在）",
+       details: results.map((r: any) => r.meta)
+     });
   }
+
+  return NextResponse.json({ success: true, inserted: totalChanges });
+
+} catch (err: any) {
+  // 如果这里没报错，说明 SQL 语法是对的
+  return NextResponse.json({ error: err.message }, { status: 500 });
 }
