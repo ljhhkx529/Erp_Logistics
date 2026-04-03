@@ -16,19 +16,14 @@
   },
   "devDependencies": {
     "@opennextjs/cloudflare": "^1.18.0",
-    "@tailwindcss/postcss": "^4.2.2",
-    "@types/node": "^20.19.37",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "eslint": "^9.39.4",
-    "eslint-config-next": "16.2.1",
-    "tailwindcss": "^4.2.2",
-    "typescript": "^5.9.3",
-    "wrangler": "^4.80.0"
-  },
-  "pnpm": {
-    "overrides": {
-      "esbuild": "0.25.0"
-    }
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.10",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "wrangler": "4.65.0"
   }
 }
