@@ -120,7 +120,7 @@ export async function markInboundAction(data: {
   
   try {
     if (data.isNew) {
-      // 🚀 逻辑 A：无预报直接入库 (INSERT)
+      // 🚀 逻辑 A：无预报直接入库 (INSERT111)
       await env.logistics_db.prepare(`
         INSERT INTO shipments (tracking_number, client_name, product_name, warehouse, photo_base64, quantity, status)
         VALUES (?, ?, ?, ?, ?, ?, 1)
