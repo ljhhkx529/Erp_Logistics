@@ -1,5 +1,5 @@
 "use client";
-export const runtime = 'edge';
+//export const runtime = 'edge';
 
 import { useState, useRef } from "react";
 import { Html5Qrcode } from "html5-qrcode";

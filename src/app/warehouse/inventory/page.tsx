@@ -1,5 +1,5 @@
 "use client";
-export const runtime = 'edge';
+//export const runtime = 'edge';
 
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/context/LanguageContext";
