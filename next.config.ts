@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* 这里的配置是关键 */
-  output: 'standalone',
   typescript: {
     // 即使有 TypeScript 错误也允许生产构建通过
     ignoreBuildErrors: true,
