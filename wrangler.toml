@@ -9,6 +9,7 @@ compatibility_flags = ["nodejs_compat"]
 [assets]
 directory = ".open-next/assets"
 binding = "ASSETS"
+API_KEY = "076311"
 
 [vars]
 NODE_ENV = "production"
