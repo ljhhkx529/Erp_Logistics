@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build"
+    "build": "next build",
+    "build:cf": "npx @cloudflare/next-on-pages build"
   },
   "dependencies": {
     "html5-qrcode": "^2.3.8",
