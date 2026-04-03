@@ -1,10 +1,5 @@
-import type { OpenNextConfig } from "@opennextjs/cloudflare";
+import { defineCloudflareConfig } from "@opennextjs/cloudflare";
 
-const config: OpenNextConfig = {
-  default: {
-    runtime: "node",
-  },
-  // 如果你有特定的缓存规则或路由需求，可以在这里添加
-};
-
-export default config;
+export default defineCloudflareConfig({
+  // 这里保持为空即可，defineCloudflareConfig 会自动填充报错信息里提到的那些 wrapper 和 converter
+});
