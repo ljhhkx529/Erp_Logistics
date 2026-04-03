@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+// 🚀 注意：这是 OpenNext 1.x 版本的标准写法
+import { getRequestContext } from "@opennextjs/cloudflare";
 
 export const dynamic = "force-dynamic";
-
 /**
  * GET 方法：仅用于基础连通性测试
  */
@@ -13,89 +14,53 @@ export async function GET() {
   });
 }
 
-/**
- * POST 方法：处理批量入库
- */
 export async function POST(request: Request) {
-  // 1. 获取环境上下文
-  // 在 OpenNext 下，Bindings 有时直接挂在 globalThis 上，有时在 process.env
-  const env = process.env as any;
-  
-  /**
-   * 🚀 寻找 D1 的三板斧：
-   * 1. 尝试直接引用（即使不在 Object.keys 里，也可能存在）
-   * 2. 尝试从 globalThis 获取（Cloudflare 原生注入点）
-   * 3. 尝试从 OpenNext 的私有环境对象获取
-   */
-  const db = env.logistics_db || (globalThis as any).logistics_db || (globalThis as any).__env__?.logistics_db;
-
   try {
-    const body = await request.json();
-    const { 
-      client,
-      product,
-      valueRmb,
-      trackingList,
-      warehouse,
-      apiKey 
-    } = body;
+    // 1. 拿到真正的 Cloudflare 环境对象
+    const ctx = getRequestContext();
+    
+    // 2. 从 ctx.env 中提取数据库
+    // 这里的 logistics_db 必须和 wrangler.toml 里的 binding 一致
+    const db = ctx.env.logistics_db;
 
-    // 2. 校验 API Key (确认为你的 076311)
-    if (!apiKey || apiKey !== env.API_KEY) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
-
-    // 3. 严格校验数据库对象
-    if (!db || typeof db.prepare !== 'function') {
+    // 诊断检查（如果还是报错，看这个 debug 信息）
+    if (!db) {
       return NextResponse.json({ 
-        error: "D1 Database binding missing",
+        error: "D1 Binding Missing",
         debug: {
-          msg: "在所有路径下均未找到 D1 对象 / Объект D1 не найден",
-          // 这里的检查不再看 key 列表，而是看直接引用的类型
-          type_in_env: typeof env.logistics_db,
-          type_in_global: typeof (globalThis as any).logistics_db,
-          available_vars: Object.keys(env)
+          msg: "在 RequestContext 中未找到数据库",
+          available_bindings: Object.keys(ctx.env || {}) 
         }
       }, { status: 500 });
     }
 
-    // 4. 数据预处理
-    if (!trackingList || !Array.isArray(trackingList)) {
-      return NextResponse.json({ error: "Invalid tracking list" }, { status: 400 });
+    const body = await request.json();
+    const { client, product, valueRmb, trackingList, warehouse, apiKey } = body;
+
+    // 3. 校验 API Key (可以从 ctx.env 拿，它是最原始的配置)
+    if (!apiKey || apiKey !== ctx.env.API_KEY) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
+    // 4. 批量写入逻辑
     const count = trackingList.length;
-    const totalValue = parseFloat(valueRmb) || 0;
-    const avgValue = count > 0 ? totalValue / count : 0;
+    const avgValue = (parseFloat(valueRmb) || 0) / (count || 1);
 
-    // 5. 准备 SQL 并执行批量写入
-    // 使用 INSERT OR IGNORE 防止重复单号导致整个 Batch 崩溃
     const stmt = db.prepare(`
       INSERT OR IGNORE INTO shipments 
       (tracking_number, client_name, product_name, value_rmb, warehouse, status, created_at) 
       VALUES (?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
     `);
 
-    const batchTasks = trackingList.map((track: string) => {
-      return stmt.bind(
-        track.trim(),
-        client || "API_BOT",
-        product || "General",
-        avgValue,
-        warehouse || "Guangzhou"
-      );
-    });
+    const batchTasks = trackingList.map((track: string) => 
+      stmt.bind(track.trim(), client, product, avgValue, warehouse)
+    );
 
     await db.batch(batchTasks);
 
-    return NextResponse.json({ 
-      success: true,
-      inserted_count: count,
-      avg_value: avgValue
-    });
+    return NextResponse.json({ success: true, count });
 
   } catch (err: any) {
-    console.error("API Error:", err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
