@@ -16,44 +16,89 @@ export async function GET() {
 
 
  export async function POST(request: Request) {
-  // 🚀 官方获取方式
-  // 注意：这个方法只能在 runtime = "edge" 时正常工作
+  // 1. 获取 Cloudflare 官方上下文
   const { env } = getRequestContext();
+
+  // 🛡️ 环境校验
+  if (!env || !env.logistics_db) {
+    return NextResponse.json(
+      { error: "D1 Database binding 'logistics_db' not found." },
+      { status: 500 }
+    );
+  }
+
   const db = env.logistics_db;
 
-  if (!db) {
-    return NextResponse.json({ error: "D1 插座未连接 / D1 не подключен" }, { status: 500 });
-  }
-  
   try {
-  const stmt = db.prepare(`
-    INSERT OR IGNORE INTO shipments 
-    (tracking_number, client_name, product_name, value_rmb, warehouse, status, created_at) 
-    VALUES (?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
-  `);
+    // 2. 解析并验证请求体
+    const body = await request.json();
+    const { 
+      client, 
+      product, 
+      valueRmb, 
+      trackingList, 
+      warehouse, 
+      apiKey 
+    } = body;
 
-  const batchTasks = trackingList.map((track: string) => 
-    stmt.bind(track.trim(), client, product, avgValue, warehouse)
-  );
+    // 3. 安全校验：使用 env 中的变量
+    if (!apiKey || apiKey !== env.API_KEY) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
 
-  // 🚀 重点 1：必须 await，并接收结果
-  const results = await db.batch(batchTasks);
-  
-  // 🚀 重点 2：打印结果元数据（这能告诉你到底写进去了几行）
-  const totalChanges = results.reduce((acc: number, r: any) => acc + (r.meta?.changes || 0), 0);
-  console.log(`📊 D1 执行完毕，实际写入行数: ${totalChanges}`);
+    if (!Array.isArray(trackingList) || trackingList.length === 0) {
+      return NextResponse.json({ error: "Empty tracking list" }, { status: 400 });
+    }
 
-  if (totalChanges === 0) {
-     return NextResponse.json({ 
-       success: true, 
-       msg: "执行成功但未写入新数据（可能是单号已存在）",
-       details: results.map((r: any) => r.meta)
-     });
+    // 4. 逻辑计算：分摊货值
+    const count = trackingList.length;
+    const totalValue = parseFloat(valueRmb) || 0;
+    const avgValue = totalValue / count;
+
+    // 5. 准备批量任务
+    const stmt = db.prepare(`
+      INSERT OR IGNORE INTO shipments 
+      (tracking_number, client_name, product_name, value_rmb, warehouse, status, created_at) 
+      VALUES (?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
+    `);
+
+    const batchTasks = trackingList.map((track: string) => 
+      stmt.bind(
+        track.trim(),
+        client || "API_BOT",
+        product || "General",
+        avgValue,
+        warehouse || "Guangzhou"
+      )
+    );
+
+    // 6. 执行原子化批量写入 (只执行一次！)
+    const results = await db.batch(batchTasks);
+
+    // 7. 精准统计：D1 的 meta.changes 会告诉你真正写入了多少行
+    let insertedCount = 0;
+    results.forEach((r) => {
+      insertedCount += r.meta.changes;
+    });
+
+    const skippedCount = count - insertedCount;
+
+    // 8. 返回符合逻辑的响应
+    return NextResponse.json({ 
+      success: true,
+      meta: {
+        total_received: count,
+        inserted: insertedCount,    // 真正新入库的数量
+        skipped: skippedCount,      // 因为单号重复被跳过的数量
+        avg_value: avgValue
+      }
+    });
+
+  } catch (err: any) {
+    console.error("D1 Batch Error:", err.message);
+    return NextResponse.json(
+      { error: "Database Operation Failed", details: err.message },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({ success: true, inserted: totalChanges });
-
-} catch (err: any) {
-  // 如果这里没报错，说明 SQL 语法是对的
-  return NextResponse.json({ error: err.message }, { status: 500 });
 }
