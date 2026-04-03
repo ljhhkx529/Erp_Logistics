@@ -9,7 +9,7 @@
     "deploy:cf": "wrangler deploy"
   },
   "dependencies": {
-    "@cloudflare/next-on-pages": "^1.13.16",
+    "@opennextjs/cloudflare": "^1.18.0",
     "html5-qrcode": "^2.3.8",
     "next": "15.5.10",
     "react": "19.0.0",
