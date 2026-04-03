@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "build:cf": "next build && npx @opennextjs/cloudflare build --skip-next-build && npx wrangler deploy"
+    "build": "next build"
   },
   "dependencies": {
     "html5-qrcode": "^2.3.8",
