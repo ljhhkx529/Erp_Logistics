@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:cf": "opennextjs-cloudflare build"
+    "build:cf": "opennextjs-cloudflare build",
+    "deploy:cf": "wrangler deploy"
   },
   "dependencies": {
     "html5-qrcode": "^2.3.8",
