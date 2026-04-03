@@ -1,9 +1,14 @@
-name = "erplogistics"
+name = "erplogistics"                 # 你的项目名（随便改）
+main = ".open-next/worker.js"         # ⚠️ OpenNext 固定入口
 compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
 
-pages_build_output_dir = ".next"
+# 如果你用到了环境变量（推荐）
+[vars]
+NODE_ENV = "production"
 
+# D1 数据库配置（你已经有）
 [[d1_databases]]
-binding = "logistics_db"
+binding = "logistics_db"              # 代码里用 env.logistics_db
 database_name = "logistics-db"
 database_id = "32079584-2dd5-435d-bd3b-7fd971fda320"
