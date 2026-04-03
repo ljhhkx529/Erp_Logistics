@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     const avgValue = count > 0 ? totalValue / count : 0;
 
     // ❗ OpenNext 下 D1 获取方式（重点）
-    const db = (globalThis as any).LOGISTICS_DB;
+    const db = (process.env as any).logistics_db;
 
     if (!db) {
       return NextResponse.json(
