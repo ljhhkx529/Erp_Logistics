@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 // 🚀 注意：这是 OpenNext 1.x 版本的标准写法
-import { getRequestContext }from "@cloudflare/next-on-pages";
+import { getRequestContext } from "@opennextjs/cloudflare";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 /**
  * GET 方法：仅用于基础连通性测试
  */
@@ -14,16 +15,19 @@ export async function GET() {
   });
 }
 
-export async function POST(request: Request) {
+
+ export async function POST(request: Request) {
+  // 🚀 官方获取方式
+  // 注意：这个方法只能在 runtime = "edge" 时正常工作
+  const { env } = getRequestContext();
+  const db = env.logistics_db;
+
+  if (!db) {
+    return NextResponse.json({ error: "D1 插座未连接 / D1 не подключен" }, { status: 500 });
+  }
+  
   try {
     // 1. 拿到真正的 Cloudflare 环境对象
-
-
-    const ctx = getRequestContext();
-    
-    // 2. 从 ctx.env 中提取数据库
-    // 这里的 logistics_db 必须和 wrangler.toml 里的 binding 一致
-    const db = ctx.env.logistics_db;
 
     // 诊断检查（如果还是报错，看这个 debug 信息）
     if (!db) {
