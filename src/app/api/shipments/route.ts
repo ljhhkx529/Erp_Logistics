@@ -17,54 +17,35 @@ export async function GET() {
  * POST 方法：处理批量入库
  */
 export async function POST(request: Request) {
-  // ✅ OpenNext 正确获取 env（替代 getRequestContext）
-  const env = (globalThis as any).process?.env || {};
+  // 1. 从 process.env 获取环境变量 (OpenNext 规范)
+  const env = process.env as any;
+  
+  // 🚀 三重保险获取数据库对象
+  const db = env.logistics_db || globalThis.logistics_db || env.LOGISTICS_DB;
 
   try {
     const body = await request.json();
-    const { 
-      client,
-      product,
-      valueRmb,
-      trackingList,
-      warehouse,
-      apiKey
-    } = body;
+    const { client, product, valueRmb, trackingList, warehouse, apiKey } = body;
 
-    // ✅ API Key 校验
-    const EXPECTED_TOKEN = env.API_KEY;
-    if (!apiKey || apiKey !== EXPECTED_TOKEN) {
-      return NextResponse.json(
-        { error: "Unauthorized: Invalid API Key" },
-        { status: 403 }
-      );
+    // 2. 校验 API Key (确认为 076311)
+    if (!apiKey || apiKey !== env.API_KEY) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // ✅ 数据校验
-    if (!trackingList || !Array.isArray(trackingList) || trackingList.length === 0) {
-      return NextResponse.json(
-        { error: "No tracking numbers provided" },
-        { status: 400 }
-      );
-    }
-
-    // ✅ 分摊货值
-    const count = trackingList.length;
-    const totalValue = parseFloat(valueRmb) || 0;
-    const avgValue = count > 0 ? totalValue / count : 0;
-
-    // ❗ OpenNext 下 D1 获取方式（重点）
-    const db = (process.env as any).logistics_db;
-
+    // 3. 如果还是找不到数据库，打印出当前所有可用的 Key 帮助我们最后定位
     if (!db) {
-      return NextResponse.json(
-        { error: "D1 Database binding missing" },
-        { status: 500 }
-      );
+      return NextResponse.json({ 
+        error: "D1 Database binding missing", 
+        debug: {
+          available_env_keys: Object.keys(env),
+          looking_for: "logistics_db"
+        }
+      }, { status: 500 });
     }
 
-    let inserted = 0;
-    let skipped = 0;
+    // --- 以下是正常的写入逻辑 ---
+    const count = trackingList.length;
+    const avgValue = (parseFloat(valueRmb) || 0) / (count || 1);
 
     const stmt = db.prepare(`
       INSERT OR IGNORE INTO shipments 
@@ -72,42 +53,15 @@ export async function POST(request: Request) {
       VALUES (?, ?, ?, ?, ?, 0)
     `);
 
-    const batchTasks = trackingList.map((track: string) => {
-      return stmt.bind(
-        track.trim(),
-        client || "TG_BOT",
-        product || "Unknown",
-        avgValue,
-        warehouse || "Guangzhou"
-      );
-    });
+    const batchTasks = trackingList.map((track: string) => 
+      stmt.bind(track.trim(), client, product, avgValue, warehouse)
+    );
 
-    // ✅ 执行批量写入
-    const results = await db.batch(batchTasks);
+    await db.batch(batchTasks);
 
-    for (const r of results) {
-      if (r.success) inserted++;
-      else skipped++;
-    }
-
-    return NextResponse.json({ 
-      success: true,
-      total_received: count,
-      inserted,
-      skipped,
-      avg_value_per_item: avgValue,
-      total_value_recorded: totalValue
-    });
+    return NextResponse.json({ success: true, inserted: count });
 
   } catch (err: any) {
-    console.error("API POST Error:", err.message);
-
-    return NextResponse.json(
-      { 
-        error: "Server Internal Error", 
-        details: err.message 
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
