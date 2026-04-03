@@ -2,10 +2,11 @@
   "name": "my-logistics-erp",
   "version": "0.1.0",
   "private": true,
+
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:cf": "next build && npx @opennextjs/cloudflare build --skip-next-build"
+    "build:cf": "next build && npx @opennextjs/cloudflare build --skip-next-build && npx @opennextjs/cloudflare deploy"
   },
   "dependencies": {
     "html5-qrcode": "^2.3.8",
