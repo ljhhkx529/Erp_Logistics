@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { D1Database } from "@cloudflare/workers-types";
 
 // 🚀 强制声明为 Edge Runtime 和 动态路由，防止 Cloudflare 缓存
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
 
+interface MyCustomEnv {
+  logistics_db: D1Database;
+  // 如果还有别的环境变量也可以写在这
+}
 /**
  * GET 方法：仅用于基础连通性测试
  * 访问地址: http://localhost:8788/api/shipments
@@ -22,8 +27,7 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   // 1. 获取 Cloudflare 环境上下文 (D1 数据库和环境变量)
-  const context = getCloudflareContext();
-  const env = context?.env;
+  const { env } = getCloudflareContext() as unknown as { env: MyCustomEnv };
 
   // 🛡️ 防御性检查：如果没有 env，说明没通过 Wrangler 8788 端口访问
   if (!env) {
