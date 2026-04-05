@@ -1,10 +1,24 @@
 curl -X POST https://erplogistics.ljhzyx520.workers.dev/api/shipments \
   -H "Content-Type: application/json" \
   -d '{
-    "apiKey": "你的API_KEY",
+    "apiKey": "076311",
     "client": "TEST_USER_01",
     "product": "iPhone 15 Pro",
     "valueRmb": 8999,
     "warehouse": "Guangzhou",
     "trackingList": ["SF123456789", "EMS987654321"]
+  }'
+
+
+  curl -X POST https://erplogistics.ljhzyx520.workers.dev/api/inbound \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tracking_number": "SF123456789",
+    "client": "测试员",
+    "photo_base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "quantity": 5,
+    "product": "补丁测试件",
+    "whCode": "1",
+    "destCode": "1",
+    "apiKey": "076311",
   }'

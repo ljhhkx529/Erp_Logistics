@@ -81,7 +81,7 @@ export async function POST(request: Request) {
 
     const stmt = db.prepare(`
       INSERT INTO shipments 
-      (tracking_number, client_name, product_name, value_rmb, warehouse, destination, photo_base64, quantity, status) 
+      (tracking_number, client_name, product_name, value_rmb, status, destination, warehouse, quantity, photo_base64) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(tracking_number) DO UPDATE SET
         photo_base64 = COALESCE(excluded.photo_base64, photo_base64),
@@ -94,15 +94,15 @@ export async function POST(request: Request) {
 
         const batchTasks = finalTracks.map((track: string) => {
       return stmt.bind(
-        track.trim(),
-        client || "iOS_SHORTCUT",
-        product || "General Goods",
-        avgValue,
-        parseInt(quantity) || 1,
-        warehouse || "Guangzhou",
-        destination || "Unknown",
-        photo_base64 || null,
-        isInbound ? 1 : 0
+        track.trim(),           // 1. tracking_number
+        client || "Unknown",    // 2. client_name
+        product || "General",   // 3. product_name
+        avgValue,               // 4. value_rmb
+        isInbound,            // 5. status (INTEGER)
+        destination,            // 6. destination (TEXT: "Москве")
+        warehouse,              // 7. warehouse (TEXT: "Guangzhou")
+        parseInt(quantity) || 1,// 8. quantity (INTEGER)
+        photo_base64 || null    // 9. photo_base64 (TEXT)
       );
     });
 
