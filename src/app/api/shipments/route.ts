@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       valueRmb,     // 总货值 (如 2400)
       trackingList, // 单号数组 (如 ["SF1", "SF2"])
       warehouse,    // 仓库 (Guangzhou/Yiwu)
+      destination,  //目的地
       apiKey        // 验证令牌
     } = body;
 
@@ -75,8 +76,8 @@ export async function POST(request: Request) {
 
         const stmt = db.prepare(`
         INSERT OR IGNORE INTO shipments 
-        (tracking_number, client_name, product_name, value_rmb, warehouse, status) 
-        VALUES (?, ?, ?, ?, ?, 0)
+        (tracking_number, client_name, product_name, value_rmb, warehouse, destination,status) 
+        VALUES (?, ?, ?, ?, ?, ?,0)
         `);
 
         const batchTasks = trackingList.map((track: string) => {
@@ -85,7 +86,8 @@ export async function POST(request: Request) {
             client || "TG_BOT",
             product || "Unknown",
             avgValue,
-            warehouse || "Guangzhou"
+            warehouse || "Guangzhou",
+            destination || "России"
         );
         });
 
