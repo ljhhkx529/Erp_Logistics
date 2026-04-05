@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { D1Database } from "@cloudflare/workers-types";
 
-// 🚀 强制声明为 Edge Runtime 和 动态路由，防止 Cloudflare 缓存
-export const runtime = "edge";
-export const dynamic = "force-dynamic";
+
 
 interface MyCustomEnv {
   logistics_db: D1Database;

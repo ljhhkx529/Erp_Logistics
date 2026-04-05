@@ -1,5 +1,4 @@
 "use client";
-export const runtime = 'edge';
 
 import { useState, useRef } from "react";
 import { Html5Qrcode } from "html5-qrcode";
@@ -47,7 +46,7 @@ const [shipment, setShipment] = useState<Shipment | null>(null);
           if (res.success && res.data) {
             // 1. 匹配成功：进入预报模式
             // 🚀 确保 res.data 强制断言为 Shipment 类型
-            setShipment(res.data as Shipment);
+            setShipment(res.data as unknown as Shipment);
             setIsNewRecord(false);
           } else {
             // 2. 匹配失败：进入手动录入模式
