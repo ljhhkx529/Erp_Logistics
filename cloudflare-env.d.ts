@@ -1,7 +1,7 @@
-declare global {
-  interface Env {
-    logistics_db: D1Database;
-  }
-}
+// env.d.ts
+import { D1Database } from "@cloudflare/workers-types";
 
-export {};
+interface CloudflareEnv {
+  logistics_db: D1Database;
+  API_KEY: string;
+}

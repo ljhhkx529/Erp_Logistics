@@ -16,7 +16,7 @@ interface Env {
 }
 // 1. 获取单个单号
 export async function getShipmentAction(trackingNumber: string) {
-  const { env } = getCloudflareContext();
+  const { env } = getCloudflareContext() as { env: CloudflareEnv };
   try {
     const result = await env.logistics_db.prepare(
       "SELECT * FROM shipments WHERE tracking_number = ?"
@@ -29,7 +29,7 @@ export async function getShipmentAction(trackingNumber: string) {
 
 // 2. 获取所有记录
 export async function getAllShipmentsAction() {
-  const { env } = getCloudflareContext();
+  const { env } = getCloudflareContext() as { env: CloudflareEnv };
   try {
     const { results } = await env.logistics_db.prepare(
       "SELECT * FROM shipments ORDER BY created_at DESC"
@@ -47,7 +47,7 @@ export async function createOutboundBatchAction(data: {
   insurance_type: string;
   shipment_ids: number[];
 }) {
-  const { env } = getCloudflareContext();
+  const { env } = getCloudflareContext() as { env: CloudflareEnv };
   if (!env || !env.logistics_db) return { success: false, error: "Database not connected" };
 
   try {
@@ -83,7 +83,7 @@ export async function createOutboundBatchAction(data: {
 
 // 4. 更新单号 (修复了 104:15 的 any 错误)
 export async function updateShipmentAction(id: number, data: Record<string, string | number | boolean | null>) {
-  const { env } = getCloudflareContext();
+  const { env } = getCloudflareContext() as { env: CloudflareEnv };
   if (!env || !env.logistics_db) return { success: false, error: "Database not connected" };
 
   try {
@@ -111,7 +111,7 @@ export async function markInboundAction(data: {
   warehouse?: string;
   isNew?: boolean;
 }) {
-  const { env } = getCloudflareContext();
+  const { env } = getCloudflareContext() as { env: CloudflareEnv };
   try {
     if (data.isNew) {
       await env.logistics_db.prepare(`
@@ -150,7 +150,7 @@ export async function submitShipmentAction(data: {
   warehouse: string;
   destination: string;
 }) {
-  const { env } = getCloudflareContext();
+  const { env } = getCloudflareContext() as { env: CloudflareEnv };
   try {
     const count = data.trackingList.length;
     const averageValue = count > 0 ? data.valueRmb / count : 0;
