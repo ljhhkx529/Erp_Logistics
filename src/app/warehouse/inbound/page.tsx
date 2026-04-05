@@ -14,8 +14,9 @@ interface Shipment {
   value_rmb: number;
   warehouse: string;
   status: number;
-  photo_base64?: string; // 如果有照片字段
-  quantity?: number;     // 如果有数量字段
+  destination?: string; 
+  photo_base64?: string;
+  quantity?: number;
 }
 export default function InboundPage() {
   const { t } = useLanguage();
@@ -41,20 +42,35 @@ const [shipment, setShipment] = useState<Shipment | null>(null);
     setInspectionPhoto(null); // 切换单号时清空旧照片
     
     try {
-      const res = await getShipmentAction(code.trim());
-      if (res.success && res.data) {
-        // 1. 匹配成功：进入预报模式
-        setShipment(res.data);
-        setIsNewRecord(false);
-      } else {
-        // 2. 匹配失败：进入手动录入模式
-        setShipment({ tracking_number: code.trim() });
-        setIsNewRecord(true);
-        // 给个微弱的震动或提示
-        console.log("Entering manual mode for:", code);
-      }
-    } catch{
-      alert("查询出错 / Search Error");
+          const res = await getShipmentAction(code.trim());
+          
+          if (res.success && res.data) {
+            // 1. 匹配成功：进入预报模式
+            // 🚀 确保 res.data 强制断言为 Shipment 类型
+            setShipment(res.data as Shipment);
+            setIsNewRecord(false);
+          } else {
+            // 2. 匹配失败：进入手动录入模式
+            // 🚀 核心修复：手动模式也必须提供完整的对象形状，或者强制断言
+            // 这里推荐补全基础字段，防止页面渲染时报错
+            setShipment({
+              id: 0, // 临时 ID
+              tracking_number: code.trim(),
+              client_name: "",
+              product_name: "",
+              warehouse: "Guangzhou",
+              destination: "",
+              quantity: 1,
+              status: 0, // 默认 Pending
+              photo_base64: ""
+            } as Shipment);
+            
+            setIsNewRecord(true);
+            console.log("Entering manual mode for:", code);
+          }
+    } catch {
+      // 🚀 醒目：catch 块不要写变量，直接空 catch 避开 no-unused-vars
+      console.error("Scan processing failed");
     } finally {
       setLoading(false);
     }
