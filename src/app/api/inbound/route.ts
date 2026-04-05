@@ -56,10 +56,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized: Invalid API Key" }, { status: 403 });
     }
 
-    const tracks = Array.isArray(trackingList) ? trackingList : [body.tracking_number]; // 兼容单个单号传入
-    const finalTracks = tracks.filter((t): t is string => !!t);
+ // 🚀 3. 聪明化处理单号：无论是字符串还是数组，都统一转成数组处理
+    let finalTracks: string[] = [];
+    const raw = trackingList  // 哪个有值用哪个
+
+    if (Array.isArray(raw)) {
+      finalTracks = raw;
+    } else if (typeof raw === "string" && raw.trim() !== "") {
+      finalTracks = [raw.trim()];
+    }
+
     if (finalTracks.length === 0) {
-      return NextResponse.json({ error: "No tracking numbers" }, { status: 400 });
+      return NextResponse.json({ error: "No tracking numbers provided" }, { status: 400 });
     }
 
     // 5. 核心逻辑：分摊货值 (修复 SF1+SF2 翻倍 Bug)
