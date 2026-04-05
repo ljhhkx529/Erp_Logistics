@@ -5,7 +5,18 @@ import { useState, useRef } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { useLanguage } from "@/context/LanguageContext";
 import { getShipmentAction, markInboundAction } from "@/app/actions";
-
+// 定义包裹的数据结构，彻底干掉 any
+interface Shipment {
+  id?: number;
+  tracking_number: string;
+  client_name: string;
+  product_name: string;
+  value_rmb: number;
+  warehouse: string;
+  status: number;
+  photo_base64?: string; // 如果有照片字段
+  quantity?: number;     // 如果有数量字段
+}
 export default function InboundPage() {
   const { t } = useLanguage();
   
@@ -14,7 +25,7 @@ export default function InboundPage() {
 
   // 状态管理
   const [tracking, setTracking] = useState("");
-  const [shipment, setShipment] = useState<any>(null);
+const [shipment, setShipment] = useState<Shipment | null>(null);
   const [loading, setLoading] = useState(false);
   const [inspectionPhoto, setInspectionPhoto] = useState<string | null>(null);
   const [isNewRecord, setIsNewRecord] = useState(false);
@@ -249,7 +260,7 @@ export default function InboundPage() {
               <p className="text-[10px] font-black text-slate-400 uppercase ml-1">Photo Report / 验货照片</p>
               {inspectionPhoto ? (
                 <div className="relative">
-                  <img src={inspectionPhoto} className="w-full h-48 object-cover rounded-2xl" alt="preview" />
+                  <img src={inspectionPhoto} alt="货物照片预览" className="w-full h-48 object-cover rounded-2xl" alt="preview" />
                   <button 
                     onClick={() => setInspectionPhoto(null)}
                     className="absolute top-2 right-2 bg-black/50 text-white w-8 h-8 rounded-full"

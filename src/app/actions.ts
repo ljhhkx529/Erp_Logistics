@@ -2,7 +2,6 @@
 "use server"; // 必须在第一行，告诉 Next.js 这是后端逻辑
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { revalidatePath } from 'next/cache';
 
 
 export async function getShipmentAction(trackingNumber: string) {
@@ -16,8 +15,9 @@ export async function getShipmentAction(trackingNumber: string) {
     
     console.log("📦 数据库返回结果:", result);
     return { success: true, data: result };
-  } catch (e: any) {
-    return { success: false, error: e.message };
+  } catch (e: unknown) {
+    const err = e as Error;
+    return { success: false, error: err.message };
   }
 }
 
@@ -32,9 +32,10 @@ export async function getAllShipmentsAction() {
     ).all();
     
     return { success: true, data: results };
-  } catch (e: any) {
-    console.error("🔥 [Server] 获取库存失败:", e.message);
-    return { success: false, error: e.message };
+  } catch (e: unknown) {
+    const err = e as Error;
+    console.error("🔥 [Server] 获取库存失败:", err.message);
+    return { success: false, error: err.message };
   }
 }
 
@@ -53,7 +54,7 @@ export async function createOutboundBatchAction(data: {
   try {
     // 1. 获取总重量
     const placeholders = data.shipment_ids.map(() => "?").join(",");
-    const weightResult: any = await env.logistics_db.prepare(
+    const weightResult = await env.logistics_db.prepare(
       `SELECT SUM(weight) as total_w FROM shipments WHERE id IN (${placeholders})`
     ).bind(...data.shipment_ids).first();
 
@@ -85,7 +86,7 @@ export async function createOutboundBatchAction(data: {
   }
 }
 
-export async function updateShipmentAction(id: number, data: any) {
+export async function updateShipmentAction(id: number, data: Record<string, string | number | boolean | null>) {
   const { env } = getCloudflareContext();
   if (!env || !env.logistics_db) return { success: false, error: "Database not connected" };
 

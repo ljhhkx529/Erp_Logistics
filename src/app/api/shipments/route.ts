@@ -111,12 +111,12 @@ export async function POST(request: Request) {
         total_value_recorded: totalValue
         });
 
-  } catch (err: any) {
-    console.error("API POST Error:", err.message);
+  } catch (err: unknown) {
+    console.error("API POST Error:", (err as Error).message);
     // 处理 JSON 解析失败或数据库唯一约束冲突 (UNIQUE constraint)
     return NextResponse.json({ 
       error: "Server Internal Error", 
-      details: err.message 
+      details: (err as Error).message 
     }, { status: 500 });
   }
 }
