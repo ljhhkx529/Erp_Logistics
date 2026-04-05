@@ -1,12 +1,12 @@
 // src/app/actions.ts
 "use server"; // 必须在第一行，告诉 Next.js 这是后端逻辑
 
-import { getRequestContext } from '@cloudflare/next-on-pages';
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { revalidatePath } from 'next/cache';
 
 
 export async function getShipmentAction(trackingNumber: string) {
-  const { env } = getRequestContext();
+  const { env } = getCloudflareContext();
   console.log("🔍 正在查询单号:", `[${trackingNumber}]`); // 加上中括号看有没有空格
   
   try {
@@ -23,7 +23,7 @@ export async function getShipmentAction(trackingNumber: string) {
 
 // 获取所有库存记录
 export async function getAllShipmentsAction() {
-  const { env } = getRequestContext();
+  const { env } = getCloudflareContext();
   
   try {
     // 按照创建时间倒序排列，最新的在上面
@@ -47,7 +47,7 @@ export async function createOutboundBatchAction(data: {
   insurance_type: string; // 🚀 注意这个名字
   shipment_ids: number[];
 }) {
-  const { env } = getRequestContext();
+  const { env } = getCloudflareContext();
   if (!env || !env.logistics_db) return { success: false, error: "Database not connected" };
 
   try {
@@ -86,7 +86,7 @@ export async function createOutboundBatchAction(data: {
 }
 
 export async function updateShipmentAction(id: number, data: any) {
-  const { env } = getRequestContext();
+  const { env } = getCloudflareContext();
   if (!env || !env.logistics_db) return { success: false, error: "Database not connected" };
 
   try {
@@ -116,7 +116,7 @@ export async function markInboundAction(data: {
   warehouse?: string;    // 手动录入时使用
   isNew?: boolean;       // 标识是否为无预报直接入库
 }) {
-  const { env } = getRequestContext();
+  const { env } = getCloudflareContext();
   
   try {
     if (data.isNew) {
@@ -164,7 +164,7 @@ export async function submitShipmentAction(data: {
   warehouse: string;
   destination: string;
 }) {
-  const { env } = getRequestContext();
+  const { env } = getCloudflareContext();
   try {
     // 🚀 核心修复：计算单个包裹的平均货值
     const count = data.trackingList.length;

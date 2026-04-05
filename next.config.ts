@@ -1,12 +1,12 @@
-import { setupDevPlatform } from '@cloudflare/next-on-pages/next-dev';
+import type { NextConfig } from "next";
 
-// 🚀 开发环境下运行
-if (process.env.NODE_ENV === 'development') {
-  setupDevPlatform();
-}
-
-const nextConfig = {
-  /* config options here */
+const nextConfig: NextConfig = {
+	/* config options here */
 };
 
 export default nextConfig;
+
+// Enable calling `getCloudflareContext()` in `next dev`.
+// See https://opennext.js.org/cloudflare/bindings#local-access-to-bindings.
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+initOpenNextCloudflareForDev();
