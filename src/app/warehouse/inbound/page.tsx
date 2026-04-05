@@ -260,7 +260,7 @@ const [shipment, setShipment] = useState<Shipment | null>(null);
               <p className="text-[10px] font-black text-slate-400 uppercase ml-1">Photo Report / 验货照片</p>
               {inspectionPhoto ? (
                 <div className="relative">
-                  <img src={inspectionPhoto} alt="货物照片预览" className="w-full h-48 object-cover rounded-2xl" alt="preview" />
+                  <img src={inspectionPhoto} className="w-full h-48 object-cover rounded-2xl" alt="preview" />
                   <button 
                     onClick={() => setInspectionPhoto(null)}
                     className="absolute top-2 right-2 bg-black/50 text-white w-8 h-8 rounded-full"
