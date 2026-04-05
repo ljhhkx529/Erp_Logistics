@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 interface MyCustomEnv {
   logistics_db: D1Database;
+  API_KEY: string;
   // 如果还有别的环境变量也可以写在这
 }
 /**
