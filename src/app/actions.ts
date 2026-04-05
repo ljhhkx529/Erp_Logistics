@@ -2,6 +2,18 @@
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
+interface Env {
+  logistics_db: {
+    prepare: (sql: string) => {
+      bind: (...args: (string | number | boolean | null)[]) => {
+        first: <T = Record<string, unknown>>() => Promise<T | null>;
+        all: <T = Record<string, unknown>>() => Promise<{ results: T[] }>;
+        run: () => Promise<{ meta: { changes: number } }>;
+      };
+    };
+    batch: (stmts: unknown[]) => Promise<unknown[]>;
+  };
+}
 // 1. 获取单个单号
 export async function getShipmentAction(trackingNumber: string) {
   const { env } = getCloudflareContext();
