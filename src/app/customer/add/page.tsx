@@ -62,7 +62,7 @@ export default function CustomerEntry() {
       } else {
         setToast({ msg: `❌ 失败: ${result.error}`, type: 'error' });
       }
-    } catch (error) {
+    } catch {
       setToast({ msg: "❌ 网络错误 / Ошибка сети", type: 'error' });
     } finally {
       setIsSubmitting(false);

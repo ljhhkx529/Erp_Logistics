@@ -53,7 +53,7 @@ const [shipment, setShipment] = useState<Shipment | null>(null);
         // 给个微弱的震动或提示
         console.log("Entering manual mode for:", code);
       }
-    } catch (err) {
+    } catch{
       alert("查询出错 / Search Error");
     } finally {
       setLoading(false);
@@ -71,7 +71,7 @@ const [shipment, setShipment] = useState<Shipment | null>(null);
       const decodedText = await html5QrCode.scanFile(file, true);
       setTracking(decodedText);
       await handleSearch(decodedText); // 扫码后立即触发统一查询
-    } catch (err) {
+    } catch{
       alert("无法识别条码 / Не удалось распознать штрих-код");
     } finally {
       setLoading(false);
@@ -117,7 +117,7 @@ const [shipment, setShipment] = useState<Shipment | null>(null);
       } else {
         alert("❌ 失败: " + res.error);
       }
-    } catch (err) {
+    } catch {
       alert("系统异常 / System Error");
     } finally {
       setLoading(false);
