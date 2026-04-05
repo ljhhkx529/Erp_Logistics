@@ -42,7 +42,7 @@ export async function createOutboundBatchAction(data: {
   shipment_ids: number[];
 }) {
   // 🚀 1. 强行断言，确保 env 及其方法被 TS 识别
-  const { env } = getCloudflareContext() as any; 
+  const { env } = getCloudflareContext() as unknown as { env: MyCustomEnv };
   if (!env || !env.logistics_db) return { success: false, error: "Database not connected" };
 
   try {
