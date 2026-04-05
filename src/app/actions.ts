@@ -8,18 +8,6 @@ interface MyCustomEnv {
   logistics_db: D1Database;
   // 如果还有别的环境变量也可以写在这
 }
-interface Env {
-  logistics_db: {
-    prepare: (sql: string) => {
-      bind: (...args: (string | number | boolean | null)[]) => {
-        first: <T = Record<string, unknown>>() => Promise<T | null>;
-        all: <T = Record<string, unknown>>() => Promise<{ results: T[] }>;
-        run: () => Promise<{ meta: { changes: number } }>;
-      };
-    };
-    batch: (stmts: unknown[]) => Promise<unknown[]>;
-  };
-}
 // 1. 获取单个单号
 export async function getShipmentAction(trackingNumber: string) {
   const { env } = getCloudflareContext() as unknown as { env: MyCustomEnv };
@@ -53,17 +41,20 @@ export async function createOutboundBatchAction(data: {
   insurance_type: string;
   shipment_ids: number[];
 }) {
-  const { env } = getCloudflareContext() as unknown as { env: MyCustomEnv };
+  // 🚀 1. 强行断言，确保 env 及其方法被 TS 识别
+  const { env } = getCloudflareContext() as any; 
   if (!env || !env.logistics_db) return { success: false, error: "Database not connected" };
 
   try {
     const placeholders = data.shipment_ids.map(() => "?").join(",");
-    // 🚀 这里给 first 加了泛型，防止结果变成 any
+    
+    // 获取总重量
     const weightResult = await env.logistics_db.prepare(
       `SELECT SUM(weight) as total_w FROM shipments WHERE id IN (${placeholders})`
     ).bind(...data.shipment_ids).first<{ total_w: number | null }>();
 
-    const { lastInsertRowid } = await env.logistics_db.prepare(
+    // 🚀 2. 核心修复：不要直接解构 lastInsertRowid，D1 不支持这种写法
+    const insertResult = await env.logistics_db.prepare(
       `INSERT INTO outbound_batches (internal_tracking, package_type, insurance_type, total_weight, status) 
        VALUES (?, ?, ?, ?, 1)`
     ).bind(
@@ -73,12 +64,16 @@ export async function createOutboundBatchAction(data: {
       weightResult?.total_w ?? 0
     ).run();
 
+    // 🚀 3. 官方标准取法：从 meta 对象中获取 last_row_id
+    const lastId = insertResult.meta.last_row_id;
+
+    // 4. 更新原包裹状态，使用拿到的 lastId
     await env.logistics_db.prepare(
       `UPDATE shipments SET outbound_id = ?, status = 2 WHERE id IN (${placeholders})`
-    ).bind(lastInsertRowid, ...data.shipment_ids).run();
+    ).bind(lastId, ...data.shipment_ids).run();
 
     return { success: true };
-  } catch (e: unknown) { // 🚀 修复 78:15 处的 any
+  } catch (e: unknown) {
     const msg = (e as Error).message;
     if (msg.includes("UNIQUE constraint failed")) {
       return { success: false, error: "该自主单号已存在，请换一个新单号！" };
