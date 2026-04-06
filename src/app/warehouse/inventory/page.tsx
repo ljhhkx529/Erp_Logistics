@@ -134,7 +134,7 @@ export default function LogisticsBoard() {
         {/* 产品大图展示区 */}
         <div 
           className="relative w-full bg-gray-200 flex-shrink-0 cursor-zoom-in group"
-          style={{ width: '600px', height: '500px', maxWidth: '100%' }}
+          style={{ width: '200px', height: '100px', maxWidth: '100%' }}
           onClick={() => imgSrc && onImageClick(imgSrc)}
         >
             {imgSrc ? (
