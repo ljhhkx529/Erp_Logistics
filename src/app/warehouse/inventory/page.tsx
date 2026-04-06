@@ -22,6 +22,7 @@ interface Shipment {
 export default function LogisticsBoard() {
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -50,6 +51,19 @@ export default function LogisticsBoard() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <h1 className="mb-8 text-3xl font-bold text-gray-800">ERP 物流实时看板</h1>
+       {/* --- 图片全屏查看 Modal --- */}
+       {selectedImage && (
+         <div 
+           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 cursor-zoom-out"
+           onClick={() => setSelectedImage(null)}
+         >
+           <img 
+             src={selectedImage} 
+             alt="Full size" 
+             className="max-h-full max-w-full rounded-lg shadow-2xl transition-transform"
+           />
+         </div>
+       )}
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         
@@ -63,7 +77,12 @@ export default function LogisticsBoard() {
           </div>
           <div className="space-y-4">
             {pendingItems.map(item => (
-              <ShipmentCard key={item.id} item={item} getCellClass={getCellClass} />
+              <ShipmentCard 
+                 key={item.id} 
+                 item={item} 
+                 getCellClass={getCellClass} 
+                 onImageClick={(src) => setSelectedImage(src)}
+                 />
             ))}
           </div>
         </section>
@@ -78,7 +97,12 @@ export default function LogisticsBoard() {
           </div>
           <div className="space-y-4">
             {inWarehouseItems.map(item => (
-              <ShipmentCard key={item.id} item={item} getCellClass={getCellClass} />
+                            <ShipmentCard 
+                 key={item.id} 
+                 item={item} 
+                 getCellClass={getCellClass} 
+                 onImageClick={(src) => setSelectedImage(src)}
+                 />
             ))}
           </div>
         </section>
@@ -90,18 +114,34 @@ export default function LogisticsBoard() {
 
 // 4. 子组件：货运卡片
 {/* eslint-disable-next-line @next/next/no-img-element */}
-function ShipmentCard({ item, getCellClass }: { item: Shipment; getCellClass: (v: unknown) => string }) {
+ function ShipmentCard({ 
+   item, 
+   getCellClass, 
+   onImageClick 
+ }: { 
+  item: Shipment; 
+   getCellClass: (v: unknown) => string;
+  onImageClick: (src: string) => void;
+ }) {
+   const imgSrc = item.photo_base64 
+     ? (item.photo_base64.startsWith('data:') ? item.photo_base64 : `data:image/jpeg;base64,${item.photo_base64}`)
+     : null;
+
   return (
     <div className="overflow-hidden rounded-xl bg-white shadow-md transition-shadow hover:shadow-lg">
       <div className="flex flex-col md:flex-row">
         
         {/* 产品大图展示区 */}
-        <div className="relative h-64 w-full bg-gray-200 md:w-80 md:h-auto">
-          {item.photo_base64 ? (
+        <div 
+          className="relative w-full bg-gray-200 flex-shrink-0 cursor-zoom-in group"
+          style={{ width: '600px', height: '500px', maxWidth: '100%' }}
+          onClick={() => imgSrc && onImageClick(imgSrc)}
+        >
+            {imgSrc ? (
             <img 
-              src={item.photo_base64.startsWith('data:') ? item.photo_base64 : `data:image/jpeg;base64,${item.photo_base64}`}
-              alt={item.tracking_number}
-              className="h-full w-full object-cover"
+               src={imgSrc}
+               alt={item.tracking_number}
+               className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
             <div className="flex h-full items-center justify-center text-gray-400">
