@@ -1,65 +1,84 @@
-import Image from "next/image";
+"use client";
+
+import React from "react";
+import Link from "next/link";
+import { useLanguage } from "@/context/LanguageContext";
+
+// 定义主页翻译字典
+const i18n = {
+  zh: {
+    title: "物流 ERP 系统",
+    subtitle: "请选择您要进行的操作",
+    inboundTitle: "入库录入",
+    inboundDesc: "扫描运单、拍摄照片并录入货物信息",
+    inventoryTitle: "仓库看板",
+    inventoryDesc: "实时查看库存状态、目的地分组及缺失数据",
+    enter: "进入系统",
+  },
+  ru: {
+    title: "ERP Система Логистики",
+    subtitle: "Выберите действие для продолжения",
+    inboundTitle: "Регистрация груза",
+    inboundDesc: "Сканируйте трек-номер, делайте фото и вводите данные",
+    inventoryTitle: "Складской дашборд",
+    inventoryDesc: "Просмотр статуса склада, группировка и проверка данных",
+    enter: "Войти",
+  }
+};
 
 export default function Home() {
+  const { locale } = useLanguage();
+  const t = i18n[locale as keyof typeof i18n] || i18n.zh;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6 font-sans">
+      {/* 头部标题 */}
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-extrabold text-gray-900 mb-4">{t.title}</h1>
+        <p className="text-gray-600 text-lg">{t.subtitle}</p>
+      </div>
+
+      {/* 导航卡片容器 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+        
+        {/* 1. 入库录入入口 */}
+        <Link href="/warehouse/inbound" className="group">
+          <div className="h-full bg-white rounded-2xl p-8 shadow-sm border border-gray-200 transition-all duration-300 group-hover:shadow-xl group-hover:-translate-y-2 group-hover:border-blue-500">
+            <div className="text-4xl mb-4 text-blue-600">📥</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-blue-600">
+              {t.inboundTitle}
+            </h2>
+            <p className="text-gray-500 mb-6">
+              {t.inboundDesc}
+            </p>
+            <span className="inline-flex items-center text-blue-600 font-semibold">
+              {t.enter} <span className="ml-2 transition-transform group-hover:translate-x-2">→</span>
+            </span>
+          </div>
+        </Link>
+
+        {/* 2. 仓库看板入口 */}
+        <Link href="/warehouse/inventory" className="group">
+          <div className="h-full bg-white rounded-2xl p-8 shadow-sm border border-gray-200 transition-all duration-300 group-hover:shadow-xl group-hover:-translate-y-2 group-hover:border-green-500">
+            <div className="text-4xl mb-4 text-green-600">📊</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-green-600">
+              {t.inventoryTitle}
+            </h2>
+            <p className="text-gray-500 mb-6">
+              {t.inventoryDesc}
+            </p>
+            <span className="inline-flex items-center text-green-600 font-semibold">
+              {t.enter} <span className="ml-2 transition-transform group-hover:translate-x-2">→</span>
+            </span>
+          </div>
+        </Link>
+
+      </div>
+
+      {/* 底部版权或系统版本 */}
+      <footer className="mt-20 text-gray-400 text-sm">
+        v2.0 | {locale === 'ru' ? 'Для внутреннего использования' : '内部物流系统'}
+      </footer>
+    </main>
   );
 }
