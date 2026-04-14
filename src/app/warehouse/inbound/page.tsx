@@ -74,7 +74,49 @@ const [shipment, setShipment] = useState<Shipment | null>(null);
       setLoading(false);
     }
   };
+  const compressImage = (file: File, maxSizeKB: number = 500): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
 
+          // 如果图片太大，先进行等比例缩放，减少像素总量
+          const maxSide = 1200; 
+          if (width > maxSide || height > maxSide) {
+            if (width > height) {
+              height = (height / width) * maxSide;
+              width = maxSide;
+            } else {
+              width = (width / height) * maxSide;
+              height = maxSide;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          // 递归调整质量，直到体积小于 maxSizeKB
+          let quality = 0.9;
+          let dataUrl = canvas.toDataURL("image/jpeg", quality);
+          
+          // 粗略估算 Base64 长度对应的 KB (Base64 比原图大约 33%)
+          while (dataUrl.length / 1.33 / 1024 > maxSizeKB && quality > 0.1) {
+            quality -= 0.1;
+            dataUrl = canvas.toDataURL("image/jpeg", quality);
+          }
+          resolve(dataUrl);
+        };
+      };
+    });
+  };
   // --- 扫码识别逻辑 ---
   const handleBarcodeCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -176,8 +218,8 @@ const [shipment, setShipment] = useState<Shipment | null>(null);
         </div>
 
         <div id="reader-hidden" className="hidden"></div>
-        <input type="file" accept="image/*" capture="environment" className="hidden" ref={barcodeInputRef} onChange={handleBarcodeCapture} />
-        <input type="file" accept="image/*" capture="environment" className="hidden" ref={inspectionInputRef} onChange={handleInspectionCapture} />
+        <input type="file" accept="image/*"  className="hidden" ref={barcodeInputRef} onChange={handleBarcodeCapture} />
+        <input type="file" accept="image/*"  className="hidden" ref={inspectionInputRef} onChange={handleInspectionCapture} />
 
         {/* 2. 入库操作卡片 */}
         {shipment && (
@@ -270,25 +312,47 @@ const [shipment, setShipment] = useState<Shipment | null>(null);
               </div>
             )}
 
-            {/* 3. 公共拍照区域 */}
+            {/* 隐藏的 File Input */}
+            <input
+              type="file"
+              ref={inspectionInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  // 🚀 核心：调用压缩函数
+                  const compressedBase64 = await compressImage(file, 500);
+                  setInspectionPhoto(compressedBase64);
+                }
+              }}
+            />
+
+            {/* 3. 公共图片导入区域 */}
             <div className="space-y-2 pt-2 border-t border-slate-100">
-              <p className="text-[10px] font-black text-slate-400 uppercase ml-1">Photo Report / 验货照片</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase ml-1">
+                Photo Report / 验货图片导入
+              </p>
               {inspectionPhoto ? (
                 <div className="relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={inspectionPhoto} className="w-full h-48 object-cover rounded-2xl" alt="preview" />
                   <button 
                     onClick={() => setInspectionPhoto(null)}
-                    className="absolute top-2 right-2 bg-black/50 text-white w-8 h-8 rounded-full"
+                    className="absolute top-2 right-2 bg-black/50 text-white w-8 h-8 rounded-full transition-transform active:scale-90"
                   >✕</button>
+                  {/* 体积提示 */}
+                  <div className="absolute bottom-2 right-2 bg-black/40 text-[8px] text-white px-2 py-0.5 rounded-full backdrop-blur-sm">
+                    Compressed to ~500KB
+                  </div>
                 </div>
               ) : (
                 <button 
                   onClick={() => inspectionInputRef.current?.click()}
-                  className="w-full h-32 border-4 border-dashed border-slate-100 rounded-3xl flex flex-col items-center justify-center text-slate-300 hover:text-blue-400"
+                  className="w-full h-32 border-4 border-dashed border-slate-100 rounded-3xl flex flex-col items-center justify-center text-slate-300 hover:text-blue-400 hover:border-blue-50 transition-all active:scale-95"
                 >
-                  <span className="text-4xl mb-1">📸</span>
-                  <span className="text-[10px] font-black">TAKE PHOTO / 拍照</span>
+                  <span className="text-4xl mb-1">📁</span>
+                  <span className="text-[10px] font-black uppercase">Upload Image / 导入图片</span>
                 </button>
               )}
             </div>
