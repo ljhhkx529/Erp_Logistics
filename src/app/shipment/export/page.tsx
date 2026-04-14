@@ -1,211 +1,218 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
-import { getAllShipmentsAction } from "@/app/actions"; 
+import { getAllShipmentsAction } from "@/app/actions";
 import { createOutboundAction } from "@/app/actions/outbound";
-import { toPng } from "html-to-image"; // 需要安装: npm install html-to-image
 
-// 俄语/中文翻译
-const i18n = {
-  zh: {
-    title: "创建发货单 (Outbound)",
-    internalLabel: "发货单号 (例: Oleg-LG)",
-    packType: "包装方式",
-    insurance: "保险比例 (%)",
-    submit: "提交发货并生成清单",
-    warningValue: "提醒：部分货物未录入货值，是否继续？",
-    selected: "已选数量",
-    totalValue: "总货值",
-  },
-  ru: {
-    title: "Создание отгрузки (Outbound)",
-    internalLabel: "Внутренний номер (напр. Oleg-LG)",
-    packType: "Тип упаковки",
-    insurance: "Страховка (%)",
-    submit: "Отправить и создать манифест",
-    warningValue: "Внимание: у некоторых товаров нет стоимости. Продолжить?",
-    selected: "Выбрано",
-    totalValue: "Общая стоимость",
-  }
-};
-
-// 在文件顶部确保定义了 Shipment 接口（如果没有，请添加）
 interface Shipment {
   id: number;
   tracking_number: string;
-  client_name: string | null;
   product_name: string | null;
   value_rmb: number | null;
   status: number;
-  destination: string | null;
-  warehouse: string | null;
   quantity: number | null;
   photo_base64: string | null;
-  outbound_id: number | null;
-  created_at: string;
 }
+
+const i18n = {
+  zh: {
+    title: "发货制单",
+    searchPlaceholder: "搜索快递单号...",
+    internalId: "发货单号 (Internal ID)",
+    packType: "包装方式",
+    insurance: "保险比例",
+    submit: "确认发货",
+    selectedCount: "已选项目",
+    totalValue: "清单货值",
+    options: ["原缠", "护角", "木架", "木托", "木箱"],
+    empty: "暂无在库货物"
+  },
+  ru: {
+    title: "Оформление отгрузки",
+    searchPlaceholder: "Поиск по треку...",
+    internalId: "Внутренний номер",
+    packType: "Тип упаковки",
+    insurance: "Страховка",
+    submit: "Отправить",
+    selectedCount: "Выбрано",
+    totalValue: "Стоимость",
+    options: ["Пленка", "Уголки", "Обрешетка", "Паллет", "Ящик"],
+    empty: "Склад пуст"
+  }
+};
 
 export default function ExportPage() {
   const { locale } = useLanguage();
   const t = i18n[locale as keyof typeof i18n] || i18n.zh;
-  
-  const [list, setList] = useState<Shipment[]>([]);
+
+  const [allShipments, setAllShipments] = useState<Shipment[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [form, setForm] = useState({ internal_tracking: "", package_type: "Box", insurance_type: "0" });
-  const manifestRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
+  
+  // 表单状态
+  const [form, setForm] = useState({
+    internal_tracking: "",
+    package_type: "原缠",
+    insurance_type: "2%"
+  });
 
-    useEffect(() => {
-        async function fetchData() {
-        const res = await getAllShipmentsAction();
-        if (res.success && res.data) {
-            // 🚀 核心：先转为 unknown，再断言为我们的 Shipment 数组
-            // 这样 TS 就知道 item 拥有 status, tracking_number 等属性了
-            const rawData = res.data as unknown as Shipment[];
-            
-            // 过滤逻辑：只展示在库货物 (status 1)
-            const inWarehouse = rawData.filter((item) => item.status === 1);
-            
-            setList(inWarehouse);
-        }
-        }
-        fetchData();
-    }, []);
+  useEffect(() => {
+    async function loadData() {
+      const res = await getAllShipmentsAction();
+      if (res.success && res.data) {
+        const raw = res.data as unknown as Shipment[];
+        setAllShipments(raw.filter(s => s.status === 1));
+      }
+      setLoading(false);
+    }
+    loadData();
+  }, []);
 
-  const handleSelect = (id: number) => {
+  const filteredItems = allShipments.filter(item => 
+    item.tracking_number.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const toggleSelect = (id: number) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
-  const calculateTotal = () => {
-    return list.filter(i => selectedIds.includes(i.id)).reduce((sum, i) => sum + (i.value_rmb || 0), 0);
-  };
+  // 计算总货值仅用于 UI 展示
+  const displayTotalValue = allShipments
+    .filter(s => selectedIds.includes(s.id))
+    .reduce((a, b) => a + (b.value_rmb || 0), 0);
 
-  const handleExport = async () => {
-    const selectedItems = list.filter(i => selectedIds.includes(i.id));
-    const hasZeroValue = selectedItems.some(i => !i.value_rmb || i.value_rmb === 0);
+  // 🚀 核心：修正后的提交逻辑，严格匹配你的后端函数签名
+  const handleSubmit = async () => {
+    if (!form.internal_tracking) return alert("请输入内部单号");
+    if (selectedIds.length === 0) return alert("请选择货物");
 
-    if (hasZeroValue && !confirm(t.warningValue)) return;
-    if (!form.internal_tracking) return alert("请输入发货单号");
+    try {
+      const res = await createOutboundAction({
+        internal_tracking: form.internal_tracking,
+        shipmentIds: selectedIds,
+        package_type: form.package_type,
+        insurance_type: form.insurance_type
+      });
 
-    // 1. 生成 PNG 清单
-    if (manifestRef.current) {
-      const dataUrl = await toPng(manifestRef.current);
-      const link = document.createElement('a');
-      link.download = `${form.internal_tracking}.png`;
-      link.href = dataUrl;
-      link.click();
-    }
-
-    // 2. 提交数据库
-    const res = await createOutboundAction({
-      ...form,
-      shipmentIds: selectedIds
-    });
-
-    if (res.success) {
-      alert("发货成功！");
-      window.location.reload();
+      if (res.success) {
+        alert("发货成功！");
+        window.location.reload();
+      } else {
+        alert(`发货失败: ${res.error}`);
+      }
+    } catch (e: unknown) {
+      alert(`提交出错: ${(e as Error).message}`);
     }
   };
+
+  if (loading) return <div className="p-20 text-center opacity-20 font-black italic">LOADING...</div>;
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen font-sans">
-      <h1 className="text-2xl font-bold mb-6">{t.title}</h1>
+    <div className="min-h-screen bg-white text-slate-900 font-sans">
+      <div className="max-w-6xl mx-auto p-6 md:p-12">
+        <header className="mb-12">
+          <h1 className="text-4xl font-black tracking-tighter italic uppercase">{t.title}</h1>
+        </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* 左侧：货物选择列表 */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow p-4">
-          <div className="space-y-2">
-            {list.map(item => (
-              <div 
-                key={item.id} 
-                onClick={() => handleSelect(item.id)}
-                className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${selectedIds.includes(item.id) ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'}`}
-              >
-                <input type="checkbox" checked={selectedIds.includes(item.id)} readOnly className="mr-3" />
-                <img src={item.photo_base64} className="w-12 h-12 object-cover rounded mr-3" alt="" />
-                <div className="flex-1">
-                  <div className="font-mono text-sm font-bold">{item.tracking_number}</div>
-                  <div className="text-xs text-gray-500">{item.product_name} | ¥{item.value_rmb}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 右侧：发货参数填写 */}
-        <div className="bg-white rounded-xl shadow p-6 h-fit sticky top-6">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">{t.internalLabel}</label>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          
+          {/* 左侧：搜索列表 */}
+          <div className="lg:col-span-7">
+            <div className="sticky top-6 z-10 bg-white/80 backdrop-blur-md pb-4">
               <input 
-                type="text" 
-                className="mt-1 block w-full border rounded-md p-2"
-                onChange={e => setForm({...form, internal_tracking: e.target.value})}
+                className="w-full bg-slate-100 rounded-3xl px-8 py-5 outline-none focus:ring-4 ring-blue-50 transition-all font-bold text-lg shadow-inner"
+                placeholder={t.searchPlaceholder}
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">{t.packType}</label>
-              <select className="mt-1 block w-full border rounded-md p-2" onChange={e => setForm({...form, package_type: e.target.value})}>
-                <option value="Box">箱装 (Коробка)</option>
-                <option value="Bag">袋装 (Мешок)</option>
-                <option value="Wooden">木架 (Дерево)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">{t.insurance}</label>
-              <input type="number" className="mt-1 block w-full border rounded-md p-2" onChange={e => setForm({...form, insurance_type: e.target.value})} />
-            </div>
 
-            <div className="pt-4 border-t">
-              <div className="flex justify-between text-sm mb-1">
-                <span>{t.selected}:</span> <span className="font-bold">{selectedIds.length}</span>
-              </div>
-              <div className="flex justify-between text-lg mb-4">
-                <span>{t.totalValue}:</span> <span className="font-bold text-blue-600">¥{calculateTotal()}</span>
-              </div>
-              <button 
-                onClick={handleExport}
-                className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
-              >
-                {t.submit}
-              </button>
+            <div className="mt-8 space-y-4">
+              {filteredItems.length > 0 ? filteredItems.map(item => (
+                <div 
+                  key={item.id}
+                  onClick={() => toggleSelect(item.id)}
+                  className={`flex items-center gap-6 p-6 rounded-[2rem] cursor-pointer transition-all border-4 ${selectedIds.includes(item.id) ? 'border-blue-600 bg-blue-50/50 shadow-lg scale-[1.02]' : 'border-slate-50 hover:border-slate-100 hover:bg-slate-50'}`}
+                >
+                  <div className="w-20 h-20 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0 shadow-inner">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={item.photo_base64 || ""} className="w-full h-full object-cover" alt="" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-mono font-black text-lg text-blue-700 underline tracking-tighter">#{item.tracking_number}</p>
+                    <p className="text-[10px] text-slate-400 mt-1 uppercase font-black tracking-widest">{item.product_name || "Unknown Product"}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-black text-2xl tracking-tighter">¥{item.value_rmb}</p>
+                    <p className="text-[10px] text-slate-400 uppercase font-black">{item.quantity} PCS</p>
+                  </div>
+                </div>
+              )) : <p className="text-center py-20 text-slate-200 font-black italic uppercase tracking-widest">{t.empty}</p>}
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* 隐藏的清单区域：用于生成 PNG */}
-      <div className="fixed left-[-9999px]">
-        <div ref={manifestRef} className="bg-white p-8 w-[800px]" style={{ fontFamily: 'sans-serif' }}>
-          <h2 className="text-2xl font-bold mb-4 border-b-2 pb-2">Manifest: {form.internal_tracking}</h2>
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="p-2 border text-sm">Tracking</th>
-                <th className="p-2 border text-sm">Product</th>
-                <th className="p-2 border text-sm">Qty</th>
-                <th className="p-2 border text-sm">Photo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((item) => (
-                <tr key={item.id}>
-                  <td className="p-4 border font-mono text-sm">{item.tracking_number}</td>
-                  <td className="p-4 border text-sm">{item.product_name}</td>
-                  <td className="p-4 border text-sm">{item.quantity}</td>
-                  <td className="p-4 border">
-                    <img 
-                      src={item.photo_base64} 
-                      className="w-32 h-32 object-cover rounded shadow-sm" 
-                      alt="" 
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            </table>
-            <div className="mt-4 text-right text-gray-500 text-xs">Generated by Oleg ERP</div>
+          {/* 右侧：配置区域 */}
+          <div className="lg:col-span-5">
+            <div className="sticky top-6 space-y-8 bg-slate-50 p-10 rounded-[3rem] border border-slate-100 shadow-2xl">
+              <div className="space-y-8">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 mb-3 block ml-1 tracking-widest">{t.internalId}</label>
+                  <input 
+                    className="w-full border-b-4 border-slate-200 bg-transparent py-2 focus:border-blue-600 outline-none font-black text-2xl tracking-tighter"
+                    placeholder="Archi-LG-01"
+                    onChange={e => setForm({...form, internal_tracking: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 mb-4 block ml-1 tracking-widest">{t.packType}</label>
+                  <div className="flex flex-wrap gap-2">
+                    {t.options.map(opt => (
+                      <button 
+                        key={opt}
+                        onClick={() => setForm({...form, package_type: opt})}
+                        className={`px-6 py-3 rounded-2xl text-xs font-black transition-all uppercase ${form.package_type === opt ? 'bg-blue-600 text-white shadow-xl shadow-blue-200' : 'bg-white text-slate-300 border border-slate-100 hover:text-slate-500'}`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 mb-3 block ml-1 tracking-widest">{t.insurance}</label>
+                  <input 
+                    className="w-full border-b-4 border-slate-200 bg-transparent py-2 focus:border-blue-600 outline-none font-black text-xl"
+                    defaultValue="2%"
+                    onChange={e => setForm({...form, insurance_type: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-10 border-t-4 border-dotted border-slate-200">
+                <div className="flex justify-between items-end mb-8">
+                  <div className="space-y-1">
+                    <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest">{t.selectedCount}</p>
+                    <p className="text-4xl font-black italic tracking-tighter">{selectedIds.length}</p>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest">{t.totalValue}</p>
+                    <p className="text-3xl font-black italic tracking-tighter text-blue-600">¥{displayTotalValue}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleSubmit}
+                  disabled={selectedIds.length === 0}
+                  className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] text-sm hover:bg-blue-600 active:scale-95 transition-all disabled:opacity-10 shadow-2xl"
+                >
+                  {t.submit}
+                </button>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
