@@ -30,6 +30,24 @@ export interface ManifestFormData {
   totalAmount: string;
 }
 
+// 🚀 新增：取消标记为已制单（用于重新制单）
+export async function unmarkAsManifestedAction(batchId: number) {
+  const { env } = (await getCloudflareContext()) as unknown as {env: MyCustomEnv};
+  try {
+    // 1. 将批次标记为未制单 (is_manifested = 0)
+    await env.logistics_db.prepare(
+      `UPDATE outbound_batches SET is_manifested = 0 WHERE id = ?`
+    ).bind(batchId).run();
+
+    // 2. (可选) 你可以选择在这里删除 cargo_manifests 表中对应的旧面单数据
+    // await env.logistics_db.prepare(`DELETE FROM cargo_manifests WHERE batch_id = ?`).bind(batchId).run();
+
+    return { success: true };
+  } catch (e: unknown) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
 // 保存完整的面单数据到数据库，并标记批次为已制单
 export async function saveManifestAction(batchId: number, formData: ManifestFormData) {
   const { env } = (await getCloudflareContext()) as unknown as {env: MyCustomEnv};
