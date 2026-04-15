@@ -8,6 +8,69 @@ interface MyCustomEnv {
   // 如果还有别的环境变量也可以写在这
 }
 
+export interface ManifestFormData {
+  tracking: string;
+  pieces: string;
+  productName: string;
+  weight: string;
+  volume: string;
+  density: string;
+  transport: string;
+  days: string;
+  origin: string;
+  destination: string;
+  consignee: string;
+  phone: string;
+  cargoValue: string;
+  insurancePercent: string;
+  insuranceAmount: string;
+  shippingPrice: string;
+  packingFee: string;
+  handlingFee: string;
+  totalAmount: string;
+}
+
+// 保存完整的面单数据到数据库，并标记批次为已制单
+export async function saveManifestAction(batchId: number, formData: ManifestFormData) {
+  const { env } = (await getCloudflareContext()) as unknown as {env: MyCustomEnv};
+  const db = env.logistics_db;
+
+  try {
+    const statements = [];
+
+    // 1. 插入面单表
+    statements.push(
+      db.prepare(`
+        INSERT INTO cargo_manifests (
+          batch_id, tracking_number, pieces, product_name, weight, volume, density,
+          transport_type, transport_days, origin, destination, consignee, phone,
+          cargo_value, insurance_percent, insurance_amount, shipping_price,
+          packing_fee, handling_fee, total_amount
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        batchId, formData.tracking, formData.pieces, formData.productName,
+        formData.weight, formData.volume, formData.density, formData.transport,
+        formData.days, formData.origin, formData.destination, formData.consignee,
+        formData.phone, formData.cargoValue, formData.insurancePercent,
+        formData.insuranceAmount, formData.shippingPrice, formData.packingFee,
+        formData.handlingFee, formData.totalAmount
+      )
+    );
+
+    // 2. 更新批次状态为已制单
+    statements.push(
+      db.prepare(`UPDATE outbound_batches SET is_manifested = 1 WHERE id = ?`).bind(batchId)
+    );
+
+    // 3. 执行事务
+    await db.batch(statements);
+
+    return { success: true };
+  } catch (e: unknown) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
 export async function getOutboundBatchesAction(is_manifested: number = 0) {
   const { env } = (await getCloudflareContext()) as unknown as {env: MyCustomEnv};
   try {
