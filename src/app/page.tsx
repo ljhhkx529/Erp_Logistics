@@ -88,7 +88,21 @@ export default function Home() {
             </span>
           </div>
         </Link>
-
+{/* 2. 仓库看板入口 */}
+        <Link href="/shipment/manifest" className="group">
+          <div className="h-full bg-white rounded-2xl p-8 shadow-sm border border-gray-200 transition-all duration-300 group-hover:shadow-xl group-hover:-translate-y-2 group-hover:border-green-500">
+            <div className="text-4xl mb-4 text-green-600">📊</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-green-600">
+              制单制单
+            </h2>
+            <p className="text-gray-500 mb-6">
+              制单
+            </p>
+            <span className="inline-flex items-center text-green-600 font-semibold">
+              {t.enter} <span className="ml-2 transition-transform group-hover:translate-x-2">→</span>
+            </span>
+          </div>
+        </Link>
       </div>
 
       {/* 底部版权或系统版本 */}
