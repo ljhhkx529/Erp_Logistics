@@ -293,6 +293,9 @@ export default function ManifestPage() {
                           /* eslint-disable-next-line @next/next/no-img-element */
                           <img 
                             src={item.photo_base64} 
+                            crossOrigin="anonymous"
+                            loading="eager" // 🚀 关键：强制立即加载，不要懒加载
+                            decoding="sync" // 🚀 关键：同步解码图片
                             className="w-full h-24 object-cover rounded shadow-sm" 
                             alt="" 
                           />
