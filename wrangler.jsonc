@@ -8,7 +8,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "y",
+	"name": "erplogistics",
 	"main": ".open-next/worker.js",
 	"compatibility_date": "2026-04-04",
 	"compatibility_flags": [
